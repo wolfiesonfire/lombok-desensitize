@@ -218,7 +218,19 @@ public class HandleToString extends JavacAnnotationHandler<ToString> {
 				JCExpression tsMethod = chainDots(typeNode, "java", "util", "Arrays", fieldIsObjectArray ? "deepToString" : "toString");
 				expr = maker.Apply(List.<JCExpression>nil(), tsMethod, List.<JCExpression>of(memberAccessor));
 			} else expr = memberAccessor;
-			
+
+			// wrap your ToString getter with specified handler
+			AnnotationValues<ToString.Handler> handler = member.getNode().findAnnotation(ToString.Handler.class);
+			if (handler != null && handler.getInstance() != null) {
+				if (handler.getInstance().value().length() > 0) {
+					JCExpression tsMethod = chainDotsString(typeNode, handler.getInstance().value());
+					expr = maker.Apply(List.<JCExpression>nil(), tsMethod, List.<JCExpression>of(expr));
+				} else if (handler.getInstance().handlerClass() != void.class && handler.getInstance().handlerMethod().length() > 0) {
+					JCExpression tsMethod = chainDotsString(typeNode, handler.getInstance().handlerClass().getName() + "." + handler.getInstance().handlerMethod());
+					expr = maker.Apply(List.<JCExpression>nil(), tsMethod, List.<JCExpression>of(expr));
+				}
+			}
+
 			if (first) {
 				current = maker.Binary(CTC_PLUS, current, expr);
 				first = false;

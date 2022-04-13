@@ -25,6 +25,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.lang.reflect.Method;
 
 /**
  * Generates an implementation for the {@code toString} method inherited by all objects, consisting of printing the values of relevant fields.
@@ -119,4 +120,29 @@ public @interface ToString {
 		 */
 		String name() default "";
 	}
+
+	/**
+	 * If present, use this handler to wrap field before generated {@code toString}.
+	 */
+	@Target(ElementType.FIELD)
+	@Retention(RetentionPolicy.SOURCE)
+	public @interface Handler {
+
+		/**
+		 * handler name，{@code class.path.to.method}
+		 */
+		String value() default "";
+
+		/**
+		 * handle class
+		 */
+		Class<?> handlerClass() default void.class;
+
+		/**
+		 * handle method
+		 */
+		String handlerMethod() default "";
+
+	}
+
 }
