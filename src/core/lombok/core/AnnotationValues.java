@@ -470,7 +470,15 @@ public class AnnotationValues<A extends Annotation> {
 		List<String> l = getProbableFQTypes(annotationMethodName);
 		return l.isEmpty() ? null : l.get(0);
 	}
-	
+
+	/**
+	 * Get full class name from class simple name.
+	 * Cause {@link ClassLiteral} only contains simple name.
+	 */
+	public String getFullClassName(String className) {
+		return toFQ(className);
+	}
+
 	/*
 	 * Credit goes to Petr Jiricka of Sun for highlighting the problems with the earlier version of this method.
 	 */

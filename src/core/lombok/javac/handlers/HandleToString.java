@@ -30,6 +30,7 @@ import java.util.Collection;
 import lombok.ConfigurationKeys;
 import lombok.ToString;
 import lombok.core.AnnotationValues;
+import lombok.core.ClassLiteral;
 import lombok.core.configuration.CallSuperType;
 import lombok.core.configuration.CheckerFrameworkVersion;
 import lombok.core.AST.Kind;
@@ -222,12 +223,31 @@ public class HandleToString extends JavacAnnotationHandler<ToString> {
 			// wrap your ToString getter with specified handler
 			AnnotationValues<ToString.Handler> handler = member.getNode().findAnnotation(ToString.Handler.class);
 			if (handler != null && handler.getInstance() != null) {
+
 				if (handler.getInstance().value().length() > 0) {
 					JCExpression tsMethod = chainDotsString(typeNode, handler.getInstance().value());
 					expr = maker.Apply(List.<JCExpression>nil(), tsMethod, List.<JCExpression>of(expr));
-				} else if (handler.getInstance().handlerClass() != void.class && handler.getInstance().handlerMethod().length() > 0) {
-					JCExpression tsMethod = chainDotsString(typeNode, handler.getInstance().handlerClass().getName() + "." + handler.getInstance().handlerMethod());
-					expr = maker.Apply(List.<JCExpression>nil(), tsMethod, List.<JCExpression>of(expr));
+				} else if (handler.getInstance().handlerMethod().length() > 0) {
+
+					/**
+					 * {@code handler.getInstance().handlerClass()} sometimes return {@link ClassLiteral} cause {@link ClassCastException}
+					 *
+					 * It happens when i use the class inside the project, It's fine when i use from dependencies.
+					 */
+
+					Object handlerClassGuess = handler.getValueGuess("handlerClass");
+					String fullClassName = null;
+
+					if (handlerClassGuess instanceof ClassLiteral) {
+						fullClassName = handler.getFullClassName(((ClassLiteral) handlerClassGuess).getClassName());
+					} else if (handlerClassGuess instanceof Class) {
+						fullClassName = ((Class<?>) handlerClassGuess).getName();
+					}
+
+					if (fullClassName != null && fullClassName.length() > 0) {
+						JCExpression tsMethod = chainDotsString(typeNode, fullClassName + "." + handler.getInstance().handlerMethod());
+						expr = maker.Apply(List.<JCExpression>nil(), tsMethod, List.<JCExpression>of(expr));
+					}
 				}
 			}
 
@@ -247,7 +267,7 @@ public class HandleToString extends JavacAnnotationHandler<ToString> {
 			
 			current = maker.Binary(CTC_PLUS, current, expr);
 		}
-		
+
 		if (!first) current = maker.Binary(CTC_PLUS, current, maker.Literal(suffix));
 		
 		JCStatement returnStatement = maker.Return(current);
